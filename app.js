@@ -22,6 +22,11 @@ const alertsToggle = $('alertsToggle');
 const showAllDaysBtn = $('showAllDays');
 const showTodayBtn = $('showToday');
 const showTomorrowBtn = $('showTomorrow');
+const weekNavigator = $('weekNavigator');
+const prevWeekBtn = $('prevWeek');
+const nextWeekBtn = $('nextWeek');
+const currentWeekBtn = $('currentWeek');
+const weekLabelEl = $('weekLabel');
 const setupModal = $('setupModal');
 const setupStudent = $('setupStudent');
 const setupClass = $('setupClass');
@@ -64,6 +69,7 @@ const advancedError = $('advancedError');
 
 let nextTimer = null;
 let viewMode = 'today';
+let selectedWeekStart = startOfSchoolWeek(new Date());
 let brandTapCount = 0;
 let brandTapTimer = null;
 let brandPressTimer = null;
@@ -112,6 +118,21 @@ function init(){
   showTomorrowBtn.onclick = () => setViewMode('tomorrow');
   showAllDaysBtn.onclick = () => setViewMode('week');
 
+  prevWeekBtn.onclick = () => {
+    selectedWeekStart.setDate(selectedWeekStart.getDate() - 7);
+    renderTimetable();
+  };
+
+  nextWeekBtn.onclick = () => {
+    selectedWeekStart.setDate(selectedWeekStart.getDate() + 7);
+    renderTimetable();
+  };
+
+  currentWeekBtn.onclick = () => {
+    selectedWeekStart = startOfSchoolWeek(new Date());
+    renderTimetable();
+  };
+
   restoreAlertPreference();
   populateReminderHours();
   setViewMode('today');
@@ -144,6 +165,13 @@ function setViewMode(mode){
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   }
+
+  weekNavigator.classList.toggle('hidden', mode !== 'week');
+
+  if (mode === 'week') {
+    selectedWeekStart = startOfSchoolWeek(selectedWeekStart || new Date());
+  }
+
   renderTimetable();
 }
 
@@ -275,32 +303,42 @@ function renderTimetable(){
   const tomorrow = getDateInfo(tomorrowDate);
   const nowSlot = scheduleStore.nowSlot(now);
 
+  let weekDates = null;
+  if (viewMode === 'week') {
+    weekDates = getSchoolWeekDates(selectedWeekStart);
+    updateWeekLabel(weekDates);
+  }
+
   for (const day of DAYS) {
     let include = true;
     let dateISOForDay = null;
+    let dateLabel = '';
 
     if (viewMode === 'today') {
       include = day === today.dayName;
       dateISOForDay = today.iso;
+      dateLabel = formatDayMonth(now);
     } else if (viewMode === 'tomorrow') {
       include = day === tomorrow.dayName;
       dateISOForDay = tomorrow.iso;
+      dateLabel = formatDayMonth(tomorrowDate);
     } else {
-      // in vista settimana mostriamo promemoria solo se cadono nella settimana corrente visibile
-      dateISOForDay = getISOForNextOccurrence(day);
+      const dateForDay = weekDates.find(item => item.dayName === day)?.date || null;
+      dateISOForDay = dateForDay ? toISODate(dateForDay) : null;
+      dateLabel = dateForDay ? formatDayMonth(dateForDay) : '';
     }
 
     if (!include) continue;
 
-    const isToday = today.dayName === day;
+    const isToday = today.dayName === day && today.iso === dateISOForDay;
     const col = document.createElement('section');
     col.className = 'dayCol';
-    col.setAttribute('aria-label', `Orario di ${day}`);
+    col.setAttribute('aria-label', `Orario di ${day} ${dateLabel}`);
     if (isToday) col.classList.add('today');
 
     const title = document.createElement('div');
     title.className = 'dayTitle';
-    title.innerHTML = `<span>${day}</span>${isToday ? '<span class="dayBadge">Oggi</span>' : ''}`;
+    title.innerHTML = `<span>${day}<small>${dateLabel}</small></span>${isToday ? '<span class="dayBadge">Oggi</span>' : ''}`;
     col.appendChild(title);
 
     for (const h of hours) {
@@ -316,7 +354,7 @@ function renderTimetable(){
 
       slot.innerHTML = `<span class="slotHour">${h}:00</span><span class="slotText">${escapeHTML(text)}${remindersHtml}</span>`;
 
-      if (isNowSlot(day, h)) {
+      if (isToday && nowSlot.hour === h) {
         slot.classList.add('now');
         slot.setAttribute('aria-current', 'true');
       }
@@ -328,6 +366,16 @@ function renderTimetable(){
   if (!timetableEl.children.length){
     timetableEl.innerHTML = `<section class="dayCol"><div class="dayTitle">Nessun giorno</div><div class="slot free"><span class="slotText">Nessun orario disponibile per questa vista.</span></div></section>`;
   }
+}
+
+function updateWeekLabel(weekDates){
+  if (!weekDates || !weekDates.length) {
+    weekLabelEl.textContent = 'Settimana';
+    return;
+  }
+  const first = weekDates[0].date;
+  const last = weekDates[weekDates.length - 1].date;
+  weekLabelEl.textContent = `${formatDayMonth(first)} – ${formatDayMonth(last)}`;
 }
 
 function renderGrid(){
@@ -549,14 +597,26 @@ function getDateInfo(date){
   };
 }
 
-function getISOForNextOccurrence(dayName){
-  const d = new Date();
-  for (let i = 0; i < 8; i++){
-    const tmp = new Date();
-    tmp.setDate(d.getDate() + i);
-    if (getDateInfo(tmp).dayName === dayName) return toISODate(tmp);
-  }
-  return null;
+function startOfSchoolWeek(date){
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  const day = d.getDay(); // 0 domenica, 1 lunedì
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function getSchoolWeekDates(weekStart){
+  const start = startOfSchoolWeek(weekStart);
+  return DAYS.map((dayName, index) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + index);
+    return {dayName, date: d};
+  });
+}
+
+function formatDayMonth(date){
+  return date.toLocaleDateString('it-IT', {day:'2-digit', month:'short'});
 }
 
 function escapeHTML(str){

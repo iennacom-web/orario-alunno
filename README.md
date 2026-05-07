@@ -7,8 +7,8 @@ PWA locale per studenti, pensata per consultare rapidamente l'orario scolastico 
 - Configurazione iniziale con nome studente e classe.
 - Orario settimanale locale salvato sul dispositivo.
 - Scelta solo mattina / anche pomeriggio.
-- Vista Oggi, Domani e Settimana.
-- Promemoria legati a una data precisa, ad esempio materiale da portare.
+- Vista Oggi, Domani e Settimana navigabile.
+- Promemoria legati a una data precisa, visibili anche navigando le settimane future.
 - Alert opzionali 5 minuti prima della lezione.
 - Modalità avanzata nascosta con 5 tap sul brand IenMas.
 - Backup/ripristino tramite file.

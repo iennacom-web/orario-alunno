@@ -127,3 +127,50 @@ input[type=file]{display:none}
   .reminderItem{align-items:flex-start;flex-direction:column}
   .reminderItem button{width:100%}
 }
+
+
+.weekNavigator{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:8px;
+  align-items:center;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:10px;
+  box-shadow:0 8px 24px rgba(15,23,42,.06);
+}
+.weekNavigator button{
+  white-space:nowrap;
+}
+.weekLabel{
+  font-weight:900;
+  color:var(--primary-dark);
+  background:var(--primary-soft);
+  padding:9px 12px;
+  border-radius:999px;
+  text-align:center;
+}
+.secondaryWeek{
+  grid-column:1 / -1;
+  background:#f8fafc;
+}
+.dayTitle small{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+@media (max-width:640px){
+  .weekNavigator{
+    grid-template-columns:1fr 1fr;
+  }
+  .weekLabel{
+    grid-column:1 / -1;
+    order:-1;
+  }
+  .secondaryWeek{
+    grid-column:1 / -1;
+  }
+}
